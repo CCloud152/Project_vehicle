@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>历史记录 - 车辆特征识别系统</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+    <!-- 背景图片轮播 -->
+    <div class="bg-slider">
+        <div class="bg-slide active" style="background-image: url('/bank1.jpg');"></div>
+        <div class="bg-slide" style="background-image: url('/bank2.jpg');"></div>
+        <div class="bg-slide" style="background-image: url('/bank3.jpg');"></div>
+    </div>
+    <div class="container">
+        <!-- 标题栏 -->
+        <header class="header">
+            <h1>历史记录</h1>
+            <div class="user-status-bar">
+                <div id="user-info" class="user-info" style="display: none;">
+                    <div class="user-avatar" id="user-avatar"></div>
+                    <span class="username" id="username-display"></span>
+                </div>
+                <a href="/" class="btn btn-secondary back-btn">返回首页</a>
+                <button id="logout-btn" class="btn-logout" style="display: none;" onclick="auth.logout()">退出</button>
+            </div>
+        </header>
+
+        <!-- 历史记录列表 -->
+        <div class="history-section" id="history-content">
+            <div class="history-header">
+                <h2>识别历史</h2>
+                <span id="history-count" class="history-count">共 0 条记录</span>
+            </div>
+            
+            <div id="history-container" class="history-container">
+                <div class="loading">加载历史记录中...</div>
+            </div>
+        </div>
+
+        <!-- 未登录提示 -->
+        <div id="login-prompt" class="history-section" style="display: none;">
+            <div class="empty-state" style="text-align: center; padding: 60px 20px;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" style="margin-bottom: 20px;">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <h3 style="color: #666; margin-bottom: 12px;">请先登录</h3>
+                <p style="color: #999; margin-bottom: 24px;">登录后即可查看您的识别历史记录</p>
+                <a href="/login.html" class="btn btn-primary">立即登录</a>
+            </div>
+        </div>
+
+        <!-- 状态栏 -->
+        <footer class="footer">
+            <div class="status-bar" id="status-bar">
+                <span>就绪</span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/history.js"></script>
+    <script>
+        // 页面加载时检查登录状态
+        document.addEventListener('DOMContentLoaded', async () => {
+            await auth.initPage();
+            
+            // 更新用户状态显示
+            const user = auth.getUser();
+            if (user) {
+                document.getElementById('user-info').style.display = 'flex';
+                document.getElementById('username-display').textContent = user.username;
+                document.getElementById('user-avatar').textContent = user.username.charAt(0).toUpperCase();
+                document.getElementById('logout-btn').style.display = 'inline-block';
+                
+                // 已登录，显示历史记录内容
+                document.getElementById('history-content').style.display = 'block';
+                document.getElementById('login-prompt').style.display = 'none';
+                
+                // 加载历史记录（需要携带Token）
+                loadHistoryWithAuth();
+            } else {
+                // 未登录，显示登录提示
+                document.getElementById('user-info').style.display = 'none';
+                document.getElementById('logout-btn').style.display = 'none';
+                document.getElementById('history-content').style.display = 'none';
+                document.getElementById('login-prompt').style.display = 'block';
+            }
+        });
+
+        // 带认证的历史记录加载
+        async function loadHistoryWithAuth() {
+            try {
+                const response = await fetch('/api/history/', {
+                    method: 'GET',
+                    headers: auth.getAuthHeaders()
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    renderHistory(data.data.records);
+                    document.getElementById('history-count').textContent = `共 ${data.data.count} 条记录`;
+                } else {
+                    if (response.status === 401) {
+                        // Token过期，清除登录状态并显示登录提示
+                        auth.clearAuth();
+                        location.reload();
+                    } else {
+                        document.getElementById('history-container').innerHTML = 
+                            `<div class="error">加载失败：${data.message}</div>`;
+                    }
+                }
+            } catch (error) {
+                console.error('加载历史记录失败:', error);
+                document.getElementById('history-container').innerHTML = 
+                    `<div class="error">加载失败：${error.message}</div>`;
+            }
+        }
+
+        // 渲染历史记录
+        function renderHistory(records) {
+            const container = document.getElementById('history-container');
+            
+            if (!records || records.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="text-align: center; padding: 60px 20px;">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" style="margin-bottom: 20px;">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <h3 style="color: #666; margin-bottom: 12px;">暂无历史记录</h3>
+                        <p style="color: #999; margin-bottom: 24px;">您还没有识别过任何车辆</p>
+                        <a href="/" class="btn btn-primary">开始识别</a>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div class="history-list">';
+            records.forEach(record => {
+                html += `
+                    <div class="history-item" onclick="viewDetail(${record.id})">
+                        <div class="history-image">
+                            <img src="/api/uploads/${record.image_filename}" alt="${record.brand} ${record.model}">
+                        </div>
+                        <div class="history-info">
+                            <h3>${record.brand} ${record.model}</h3>
+                            <p class="history-meta">
+                                <span>${record.color}</span>
+                                <span>置信度: ${(record.confidence * 100).toFixed(1)}%</span>
+                            </p>
+                            <p class="history-time">${formatTime(record.create_time)}</p>
+                        </div>
+                        <button class="delete-btn" onclick="event.stopPropagation(); deleteHistory(${record.id})">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // 格式化时间
+        function formatTime(timeStr) {
+            const date = new Date(timeStr);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // 查看详情
+        function viewDetail(recordId) {
+            window.location.href = `/?id=${recordId}`;
+        }
+
+        // 删除历史记录
+        async function deleteHistory(recordId) {
+            if (!confirm('确定要删除这条记录吗？')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/history/${recordId}`, {
+                    method: 'DELETE',
+                    headers: auth.getAuthHeaders()
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    // 重新加载历史记录
+                    loadHistoryWithAuth();
+                } else {
+                    alert('删除失败：' + data.message);
+                }
+            } catch (error) {
+                console.error('删除历史记录失败:', error);
+                alert('删除失败：' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

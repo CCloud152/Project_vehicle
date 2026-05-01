@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - 车辆特征识别系统</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+    <!-- 背景图片轮播 -->
+    <div class="bg-slider">
+        <div class="bg-slide active" style="background-image: url('/bank1.jpg');"></div>
+        <div class="bg-slide" style="background-image: url('/bank2.jpg');"></div>
+        <div class="bg-slide" style="background-image: url('/bank3.jpg');"></div>
+    </div>
+
+    <div class="auth-container">
+        <div class="auth-box">
+            <div class="auth-header">
+                <h1>用户注册</h1>
+                <p>创建账号，保存您的识别历史</p>
+            </div>
+
+            <form id="register-form" class="auth-form">
+                <div class="form-group">
+                    <label for="username">用户名 <span class="required">*</span></label>
+                    <input type="text" id="username" name="username" placeholder="请输入用户名" required
+                           minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]+"
+                           title="用户名只能包含字母、数字和下划线，长度3-20个字符">
+                    <span class="input-hint">3-20个字符，只能包含字母、数字和下划线</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">邮箱 <span class="optional">（可选）</span></label>
+                    <input type="email" id="email" name="email" placeholder="请输入邮箱">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">密码 <span class="required">*</span></label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="password" name="password" placeholder="请输入密码" required minlength="6">
+                        <button type="button" class="toggle-password" onclick="togglePassword('password')">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                    <span class="input-hint">至少6个字符</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm-password">确认密码 <span class="required">*</span></label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="confirm-password" name="confirm-password" placeholder="请再次输入密码" required minlength="6">
+                        <button type="button" class="toggle-password" onclick="togglePassword('confirm-password')">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full" id="register-btn">
+                    <span class="btn-text">注册</span>
+                    <span class="btn-loading" style="display: none;">注册中...</span>
+                </button>
+            </form>
+
+            <div id="error-message" class="error-message" style="display: none;"></div>
+            <div id="success-message" class="success-message" style="display: none;"></div>
+
+            <div class="auth-footer">
+                <p>已有账号？<a href="/login.html">立即登录</a></p>
+                <p class="back-link"><a href="/">← 返回首页</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        // 切换密码可见性
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        // 注册表单提交
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const registerBtn = document.getElementById('register-btn');
+            const errorDiv = document.getElementById('error-message');
+            const successDiv = document.getElementById('success-message');
+            
+            // 清空之前的消息
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            // 前端验证
+            if (password !== confirmPassword) {
+                errorDiv.textContent = '两次输入的密码不一致';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            if (password.length < 6) {
+                errorDiv.textContent = '密码长度至少为6个字符';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            // 显示加载状态
+            registerBtn.disabled = true;
+            registerBtn.querySelector('.btn-text').style.display = 'none';
+            registerBtn.querySelector('.btn-loading').style.display = 'inline';
+            
+            // 调用注册API
+            const result = await auth.register(username, password, email);
+            
+            if (result.success) {
+                successDiv.textContent = '注册成功，正在跳转...';
+                successDiv.style.display = 'block';
+                
+                // 检查是否需要跳转回之前的页面
+                setTimeout(() => {
+                    if (!auth.checkRedirectAfterLogin()) {
+                        window.location.href = '/';
+                    }
+                }, 500);
+            } else {
+                errorDiv.textContent = result.message;
+                errorDiv.style.display = 'block';
+                
+                // 恢复按钮状态
+                registerBtn.disabled = false;
+                registerBtn.querySelector('.btn-text').style.display = 'inline';
+                registerBtn.querySelector('.btn-loading').style.display = 'none';
+            }
+        });
+
+        // 背景轮播
+        function initBackgroundSlider() {
+            const slides = document.querySelectorAll('.bg-slide');
+            let currentSlide = 0;
+            
+            setInterval(() => {
+                slides[currentSlide].classList.remove('active');
+                currentSlide = (currentSlide + 1) % slides.length;
+                slides[currentSlide].classList.add('active');
+            }, 5000);
+        }
+        
+        initBackgroundSlider();
+
+        // 如果已登录，直接跳转到首页
+        if (auth.isLoggedIn()) {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

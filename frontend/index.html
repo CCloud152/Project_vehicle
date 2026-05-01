@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>车辆特征识别系统</title>
+        <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="css/progress.css">
+</head>
+<body>
+    <!-- 背景图片轮播 -->
+    <div class="bg-slider">
+        <div class="bg-slide active" style="background-image: url('/bank1.jpg');"></div>
+        <div class="bg-slide" style="background-image: url('/bank2.jpg');"></div>
+        <div class="bg-slide" style="background-image: url('/bank3.jpg');"></div>
+    </div>
+    <div class="container">
+        <!-- 标题栏 -->
+        <header class="header">
+            <h1>深度学习车辆特征识别系统</h1>
+            <div class="user-status-bar">
+                <div id="user-info" class="user-info" style="display: none;">
+                    <div class="user-avatar" id="user-avatar"></div>
+                    <span class="username" id="username-display"></span>
+                </div>
+                <a href="/login.html" id="login-btn" class="btn-login">登录</a>
+                <button id="logout-btn" class="btn-logout" style="display: none;" onclick="auth.logout()">退出</button>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <div class="image-section">
+                <div class="image-container">
+                    <!-- 图片预览：确保初始隐藏逻辑正确 -->
+                    <img id="preview-image" src="" alt="预览图片" style="display: none; max-width: 100%;">
+                    <!-- 图片占位符：默认显示 -->
+                    <div id="image-placeholder" class="placeholder">
+                        <p>请上传车辆图片</p>
+                    </div>
+
+                    <div id="image-error" class="error-state hidden" style="display: none;">
+                        <p>图片加载失败</p>
+                        <button id="retry-load" class="btn btn-secondary" style="margin-top: 10px; padding: 5px 10px; font-size: 12px;">
+                            重试加载
+                        </button>
+                    </div>
+                    <!-- 新增：车辆位置框叠加层（用于框选车辆） -->
+                    <div id="detection-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></div>
+                </div>
+                <div class="image-controls">
+                    <button id="zoom-in" class="btn-control">+</button>
+                    <button id="zoom-out" class="btn-control">-</button>
+                    <button id="zoom-reset" class="btn-control">1:1</button>
+                </div>
+            </div>
+
+            <div class="result-section">
+                <h2 class="result-title">识别结果</h2>
+                
+                <!-- 识别进度（新增） -->
+                <div id="recognition-progress" class="recognition-progress" style="display: none;">
+                    <div class="progress-info">
+                        <span class="progress-status" id="progress-status">准备识别...</span>
+                        <span class="progress-percentage" id="progress-percentage">0%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
+                    </div>
+                    <button id="cancel-recognition" class="btn btn-secondary btn-cancel" style="display: none;">
+                        取消识别
+                    </button>
+                </div>
+                
+                <!-- 识别结果容器：确保结构完整 -->
+                <div id="result-container" class="result-container">
+                  <!-- 导航按钮：左箭头 -->
+                  <button class="nav-btn nav-prev" id="nav-prev">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M15 19L8 12L15 5" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+
+                  <!-- 车辆卡片容器（核心：确保ID正确，用于渲染车辆信息） -->
+                  <div class="vehicle-cards-container" id="vehicle-cards-container">
+                      <!-- 新增：初始空状态提示 -->
+                      <div class="empty-state">请点击"开始识别"获取结果</div>
+                  </div>
+
+                  <!-- 导航按钮：右箭头 -->
+                  <button class="nav-btn nav-next" id="nav-next">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 5L16 12L9 19" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+
+                  <!-- 车辆指示器（小圆点） -->
+                  <div class="vehicle-indicators" id="vehicle-indicators"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部操作栏 -->
+        <footer class="footer">
+            <div class="input-group">
+                <!-- 本地上传：label与input绑定正确 -->
+                <label class="file-label btn btn-secondary" for="file-upload">
+                    本地上传
+                </label>
+                <input type="file" id="file-upload" accept="image/*" hidden>
+                <button id="start-recognize" class="btn btn-primary">开始识别</button>
+                <!-- 修复：确保按钮ID与JavaScript中一致（原可能不匹配） -->
+                <button id="clear-all" class="btn btn-secondary">清除</button>
+                <a href="/history" class="btn btn-history">历史记录</a>
+            </div>
+            <!-- 状态栏：用于显示上传/识别状态 -->
+            <div class="status-bar" id="status-bar">
+                <span>就绪</span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/asyncRecognition.js"></script>
+    <script src="js/script.js"></script>
+    <script>
+        // 页面加载完成后更新用户状态
+        document.addEventListener('DOMContentLoaded', async () => {
+            await auth.initPage();
+            
+            // 更新首页特定的用户状态显示
+            const user = auth.getUser();
+            if (user) {
+                document.getElementById('user-info').style.display = 'flex';
+                document.getElementById('username-display').textContent = user.username;
+                document.getElementById('user-avatar').textContent = user.username.charAt(0).toUpperCase();
+                document.getElementById('login-btn').style.display = 'none';
+                document.getElementById('logout-btn').style.display = 'inline-block';
+            } else {
+                document.getElementById('user-info').style.display = 'none';
+                document.getElementById('login-btn').style.display = 'inline-block';
+                document.getElementById('logout-btn').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+# ==========================================
+# 车辆识别系统 - Docker Compose配置
+# ==========================================
+
+version: '3.8'
+
+services:
+  # Redis - Celery消息队列
+  redis:
+    image: redis:7-alpine
+    container_name: car_recognition_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  # Flask后端服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: car_recognition_backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend:/app
+      - ./frontend:/app/frontend
+    environment:
+      - ENV=production
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - CELERY_BROKER_TYPE=redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - DATABASE_URL=sqlite:///data/car_recognition.db
+      - MODEL_SERVICE_TYPE=${MODEL_SERVICE_TYPE:-ollama}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen3-vl:8b}
+      - OLLAMA_TIMEOUT=300
+      - STORAGE_TYPE=${STORAGE_TYPE:-local}
+      - LOG_LEVEL=INFO
+    depends_on:
+      - redis
+    # 使用python app.py启动（SocketIO）
+    command: >
+      sh -c "mkdir -p /app/data &&
+             python -c \"from models.db import CarDatabase; CarDatabase('/app/data/car_recognition.db')\" &&
+             python app.py"
+
+  # Celery Worker - 任务处理
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: car_recognition_celery
+    restart: unless-stopped
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend:/app
+      - ./frontend:/app/frontend
+    environment:
+      - ENV=production
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - CELERY_BROKER_TYPE=redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - DATABASE_URL=sqlite:///data/car_recognition.db
+      - MODEL_SERVICE_TYPE=${MODEL_SERVICE_TYPE:-ollama}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen3-vl:8b}
+      - OLLAMA_TIMEOUT=300
+      - STORAGE_TYPE=${STORAGE_TYPE:-local}
+      - WORKER_CONCURRENCY=1
+      - LOG_LEVEL=INFO
+    depends_on:
+      - redis
+      - backend
+    command: >
+      sh -c "mkdir -p /app/data &&
+             celery -A celery_app worker 
+             --loglevel=info 
+             --concurrency=1 
+             --hostname=worker@%h"
+
+volumes:
+  redis_data:
