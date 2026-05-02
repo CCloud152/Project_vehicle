@@ -65,10 +65,10 @@ if __name__ == '__main__':
         print(f"{rule.endpoint}: {rule.rule} [{', '.join(rule.methods)}]")
     print("=" * 50)
 
-    # 使用SocketIO启动应用
+    # 使用SocketIO启动应用（只监听本机）
     socketio.run(
         app,
-        host='0.0.0.0',
+        host='127.0.0.1',
         port=5000,
         debug=FLASK_CONFIG['DEBUG'],
         allow_unsafe_werkzeug=True

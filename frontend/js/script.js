@@ -57,7 +57,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             console.log('请求历史记录详情:', recordId);
-            const response = await fetch(`/api/history/${recordId}`);
+            // 获取token并添加到请求头
+            const token = localStorage.getItem('car_recognition_token');
+            const headers = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            
+            const response = await fetch(`/api/history/${recordId}`, {
+                headers: headers
+            });
             const data = await response.json();
             console.log('历史记录响应:', data);
 

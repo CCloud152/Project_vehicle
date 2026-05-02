@@ -1,0 +1,49 @@
+nohup: ignoring input
+ 
+ -------------- celery@DESKTOP-7ETGBFH v5.6.3 (recovery)
+--- ***** ----- 
+-- ******* ---- Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39 2026-05-02 16:26:31
+- *** --- * --- 
+- ** ---------- [config]
+- ** ---------- .> app:         car_recognition:0x7e50a0ff3260
+- ** ---------- .> transport:   sqla+sqlite:///celery_broker.db
+- ** ---------- .> results:     sqlite:///celery_results.db
+- *** --- * --- .> concurrency: 1 (prefork)
+-- ******* ---- .> task events: OFF (enable -E to monitor tasks in this worker)
+--- ***** ----- 
+ -------------- [queues]
+                .> celery           exchange=celery(direct) key=celery
+                
+
+[tasks]
+  . tasks.recognition.recognize_vehicle_task
+
+[2026-05-02 16:26:31,826: INFO/MainProcess] Connected to sqla+sqlite:///celery_broker.db
+[2026-05-02 16:26:31,840: INFO/MainProcess] celery@DESKTOP-7ETGBFH ready.
+
+Restarting celery worker (/home/karawink/to-the-moon/Project_vehicle/.venv/bin/celery -A celery_app worker --loglevel=info --concurrency=1)
+[2026-05-02 16:31:12,898: ERROR/MainProcess] Process 'ForkPoolWorker-1' pid:54662 exited with 'exitcode 70'
+ 
+ -------------- celery@DESKTOP-7ETGBFH v5.6.3 (recovery)
+--- ***** ----- 
+-- ******* ---- Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39 2026-05-02 16:31:17
+- *** --- * --- 
+- ** ---------- [config]
+- ** ---------- .> app:         car_recognition:0x73a762c41b20
+- ** ---------- .> transport:   sqla+sqlite:///celery_broker.db
+- ** ---------- .> results:     sqlite:///celery_results.db
+- *** --- * --- .> concurrency: 1 (prefork)
+-- ******* ---- .> task events: OFF (enable -E to monitor tasks in this worker)
+--- ***** ----- 
+ -------------- [queues]
+                .> celery           exchange=celery(direct) key=celery
+                
+
+[tasks]
+  . tasks.recognition.recognize_vehicle_task
+
+[2026-05-02 16:31:17,948: INFO/MainProcess] Connected to sqla+sqlite:///celery_broker.db
+[2026-05-02 16:31:17,963: INFO/MainProcess] celery@DESKTOP-7ETGBFH ready.
+
+worker: Warm shutdown (MainProcess)
+[2026-05-02 16:38:23,885: ERROR/MainProcess] Process 'ForkPoolWorker-1' pid:55573 exited with 'signal 15 (SIGTERM)'
