@@ -1,7 +1,7 @@
 # Project_vehicle 项目路线图
 
 ## 当前状态
-**阶段3已完成** - Docker化与云端部署准备
+**阶段3已完成** - vLLM云端部署支持
 
 ---
 
@@ -21,72 +21,55 @@
 
 ### ✅ 阶段3：云端部署准备（已完成）
 
-- [x] Docker化：Dockerfile + docker-compose.yml
-- [x] 环境配置：.env文件 + 环境变量支持
-- [x] SQLite保持（<10并发场景足够）
-- [x] 部署文档：DOCKER_DEPLOY.md
+- [x] vLLM服务支持（OpenAI兼容API）
+- [x] 模型服务抽象（Ollama/vLLM同构接口）
+- [x] 环境配置简化（.env文件）
+- [x] 部署文档：`DEPLOYMENT.md`
+
+---
+
+## 架构说明
+
+```
+用户浏览器 → 本地Flask → Celery Worker → 云端vLLM（AutoDL）
+              SQLite      任务队列        模型推理
+```
+
+**职责分离：**
+- 本地：Web服务、任务调度、数据存储
+- 云端(AutoDL)：纯模型推理服务
+
+---
+
+## 快速部署
+
+```bash
+# 1. AutoDL启动vLLM
+python -m vllm.entrypoints.openai.api_server \
+    --model Qwen/Qwen3-VL-8B-Instruct \
+    --host 0.0.0.0 --port 8000
+
+# 2. 本地配置.env
+MODEL_SERVICE_TYPE=vllm
+VLLM_HOST=http://autodl-xxx:8000
+
+# 3. 启动本地服务
+celery -A celery_app worker --concurrency=1
+python app.py
+```
+
+详见 [DEPLOYMENT.md](./DEPLOYMENT.md)
 
 ---
 
 ## 剩余阶段
 
-### 阶段3补充：对象存储（可选）
+### 阶段4：移动端适配（可选）
 
-#### 目标
-多实例部署时，统一图片存储
-
-#### 任务清单
-- [ ] S3存储支持
-- [ ] 阿里云OSS支持
-- [ ] 存储层抽象
+- [ ] 响应式设计
+- [ ] PWA支持
+- [ ] 图片压缩
 
 ---
 
-### 阶段4：移动端适配（待完成）
-
-#### 目标
-优化移动端体验
-
-#### 任务清单
-- [ ] 响应式设计：适配手机/平板屏幕
-- [ ] PWA支持：添加Service Worker
-- [ ] 图片压缩：前端自动压缩上传图片
-- [ ] 离线提示：网络断开时的友好提示
-- [ ] 触摸优化：优化触摸操作体验
-
----
-
-## 建议优先级
-
-| 阶段 | 优先级 | 预计工时 | 依赖 |
-|------|--------|----------|------|
-| 阶段2 | ✅ 已完成 | - | 无 |
-| 阶段3 | ✅ 已完成 | - | 阶段2完成 |
-| 阶段3补充 | 🟡 低 | 1-2天 | 多实例部署时 |
-| 阶段4 | 🟢 中 | 3-5天 | 阶段3完成 |
-
----
-
-## 快速部署指南
-
-### Docker部署（推荐）
-
-```bash
-# 1. 配置环境变量
-cp .env.example .env
-# 编辑 .env 文件，设置 OLLAMA_HOST 为你的GPU服务器地址
-
-# 2. 启动服务
-docker-compose up -d
-
-# 3. 查看日志
-docker-compose logs -f
-```
-
-### 云端GPU部署（AutoDL）
-
-参见 [DOCKER_DEPLOY.md](./DOCKER_DEPLOY.md)
-
----
-
-**文档创建时间**: 2026-04-29 01:12
+**文档更新时间**: 2026-05-02
